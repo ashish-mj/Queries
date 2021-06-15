@@ -1,0 +1,155 @@
+USE WAREHOUSE SMALL_WH;
+select * from "SNOWFLAKE_SAMPLE_DATA"."TPCDS_SF100TCL"."REASON" ;
+
+
+Create table "USDA_NUTRIENT_STDREF"."PUBLIC"."FD_GROUP"
+(
+  fdgrp_cd varchar(4)
+ ,fdgrp_desc varchar(60)
+);
+
+
+//LOAD - our target table is the food group table which we load using the insert command
+INSERT INTO "USDA_NUTRIENT_STDREF"."PUBLIC"."FD_GROUP"
+
+SELECT
+//TRANSFORM - we clean up the data by replacing the tildes in both fields
+REPLACE(fdgrp_cd,'~','') as fdgrp_cd,
+REPLACE(fdgrp_desc,'~','') as fdgrp_desc
+//EXTRACT - source table is the food group ingest table
+FROM "USDA_NUTRIENT_STDREF"."PUBLIC"."FD_GROUP_INGEST";
+
+
+
+COPY INTO WEIGHT_INGEST
+FROM @MY_S3_BUCKET/load/
+FILES = ('WEIGHT.txt')
+FILE_FORMAT =  (FORMAT_NAME  = USDA_FILE_FORMAT)
+FORCE= TRUE;
+
+
+CREATE TABLE LANGDESC(
+FACTOR_CODE VARCHAR(5),
+DESCRIPTION VARCHAR(140)
+);
+
+
+SELECT $2 , $1
+FROM  @MY_S3_BUCKET/load/LANGDESC.txt
+(FILE_FORMAT => USDA_FILE_FORMAT); 
+
+
+SELECT $1 AS FIRST_COLUMN
+FROM  @MY_S3_BUCKET/load/LANGDESC.txt
+(FILE_FORMAT => USDA_FILE_FORMAT); 
+
+
+
+COPY INTO LANGDESC(FACTOR_CODE,DESCRIPTION)
+FROM
+(SELECT REPLACE($1,'~') ,REPLACE($2,'~')
+FROM  @MY_S3_BUCKET/load/LANGDESC.txt)
+
+FILE_FORMAT = USDA_FILE_FORMAT; 
+
+
+
+
+COPY INTO WEIGHT_INGEST
+FROM @MY_S3_BUCKET/load/
+FILES = ('WEIGHT.txt')
+FILE_FORMAT =  (FORMAT_NAME  = USDA_FILE_FORMAT)
+FORCE= TRUE;
+
+
+CREATE TABLE LANGDESC(
+FACTOR_CODE VARCHAR(5),
+DESCRIPTION VARCHAR(140)
+);
+
+
+SELECT $2 , $1
+FROM  @MY_S3_BUCKET/load/LANGDESC.txt
+(FILE_FORMAT => USDA_FILE_FORMAT); 
+
+
+SELECT $1 AS FIRST_COLUMN
+FROM  @MY_S3_BUCKET/load/LANGDESC.txt
+(FILE_FORMAT => USDA_FILE_FORMAT); 
+
+
+
+
+CREATE OR REPLACE TABLE WEIGHT (
+    NDB_NO	VARCHAR(5)
+    ,SEQ	VARCHAR(2)
+    ,AMOUNT	NUMBER(6,3)
+    ,MSRE_DESC	VARCHAR(84)
+    ,GM_WGT	NUMBER(7,1)
+    ,NUM_DATA_PTS	NUMBER(4,0)
+    ,STD_DEV	NUMBER(7,3)
+  );
+  
+//ETL to move WEIGHT data from WEIGHT_INGEST to WEIGHT
+//LOAD STEP
+INSERT INTO WEIGHT(
+SELECT 
+  //TRANSFORM STEP
+    REPLACE(NDB_NO,'~') as NDB_NO
+    ,REPLACE(SEQ,'~') as SEQ
+    ,AMOUNT
+    ,REPLACE(MSRE_DESC,'~') as MSRE_DESC
+    ,GM_WGT
+    ,NUM_DATA_PTS
+    ,STD_DEV
+
+
+
+
+// XML DML Scripts
+USE LIBRARY_CARD_CATALOG;
+
+//Returns entire record
+SELECT raw_author 
+FROM author_ingest_xml;
+
+// Presents a kind of meta-data view of the data
+SELECT raw_author:"$" 
+FROM author_ingest_xml; 
+
+//shows the root or top-level object name of each row
+SELECT raw_author:"@" 
+FROM author_ingest_xml; 
+
+//returns AUTHOR_UID value from top-level object's attribute
+SELECT raw_author:"@AUTHOR_UID"
+FROM author_ingest_xml;
+
+//The first row is weird because it has all the data smushed into it. 
+//If you want to delete just that row, run this statement
+DELETE FROM author_ingest_xml
+WHERE raw_author like '%<dataset>%';
+
+//returns value of NESTED OBJECT called FIRST_NAME
+SELECT XMLGET(raw_author, 'FIRST_NAME'):"$"
+FROM author_ingest_xml;
+
+//returns the data in a way that makes it look like a normalized table
+SELECT 
+raw_author:"@AUTHOR_UID" as AUTHOR_ID
+,XMLGET(raw_author, 'FIRST_NAME'):"$" as FIRST_NAME
+,XMLGET(raw_author, 'MIDDLE_NAME'):"$" as MIDDLE_NAME
+,XMLGET(raw_author, 'LAST_NAME'):"$" as LAST_NAME
+FROM AUTHOR_INGEST_XML;
+
+//add ::STRING to cast the values into strings and get rid of the quotes
+SELECT 
+raw_author:"@AUTHOR_UID" as AUTHOR_ID
+,XMLGET(raw_author, 'FIRST_NAME'):"$"::STRING as FIRST_NAME
+,XMLGET(raw_author, 'MIDDLE_NAME'):"$"::STRING as MIDDLE_NAME
+,XMLGET(raw_author, 'LAST_NAME'):"$"::STRING as LAST_NAME
+FROM AUTHOR_INGEST_XML;
+//EXTRACT STEP 
+FROM WEIGHT_INGEST);
+
+
